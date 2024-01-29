@@ -1,0 +1,208 @@
+version: '3'
+
+# include:
+  # - docker-compose.rpc.yml
+
+services:
+  apps:
+    image: laravel_app_dev:1.0
+    container_name: apps_dev
+    env_file:
+      - dev.env
+    volumes:
+      - ./custom.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./apps:/app
+      - ./certs:/certs
+    command: 
+      - php
+      - artisan
+      - serve
+      - --host=0.0.0.0
+      - --port=8080
+    networks:
+      - app_dev
+    depends_on:
+      - cockroachdb
+      - dragonflydb
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  caddy:
+    image: caddy:2.7
+    container_name: caddy_dev
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./apps:/app
+      - caddy_data:/data
+    networks:
+      - app_dev
+    depends_on:
+      - apps
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  cockroachdb:
+    image: cockroachdb/cockroach:v23.1.13
+    container_name: cockroachdb_dev
+    env_file:
+      - dev.env
+    command:
+      - start-single-node
+      - --http-addr
+      - :9080
+      - --certs-dir
+      - /certs
+    ports:
+      - "9080:9080"
+    volumes:
+      - cockroach_data:/cockroach/cockroach-data
+      - ./certs:/certs
+    networks:
+      - app_dev
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: pgweb_dev
+    env_file:
+      - dev.env
+    networks:
+      - app_dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./certs:/certs
+    depends_on:
+      - cockroachdb
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "1"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  buggregator:
+    image: ghcr.io/buggregator/server:latest
+    container_name: buggregator_dev
+    networks:
+      - app_dev
+    ports:
+      - "8000:8000"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "1"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  dragonflydb:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    container_name: dragonflydb_dev
+    command: dragonfly --logtostderr --requirepass L2hgheewayei5eechW2
+    volumes:
+      - dragonflydb_data:/data
+    networks:
+      - app_dev
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "1"
+    ulimits:
+      memlock: -1
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio_dev
+    command: [
+      "server",
+      "--console-address",
+      ":9001",
+      "/data"
+    ]
+    env_file:
+      - dev.env
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - app_dev
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "1"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  caddy_data:
+    name: caddy_dev_data
+  dragonflydb_data:
+    name: dragonflydb_dev_data
+  minio_data:
+    name: minio_dev_data
+  cockroach_data:
+    name: cockroach_dev_data
+
+networks:
+   app_dev:
+     driver: bridge
+     name: app_dev
