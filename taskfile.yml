@@ -3,7 +3,7 @@ version: '3'
 tasks:
   build:
     cmds:
-      - docker buildx build --force-rm --load --tag laravel_app_dev:1.0 .
+      - docker buildx build --force-rm --load --tag laravel_app_mariadb_dev:1.0 .
       - docker image prune -f
 
   build-prune:
@@ -12,14 +12,9 @@ tasks:
 
   install:
     cmds:
-      - docker exec -it apps_dev sh -c 'composer install && php artisan telescope:publish'
+      - docker exec -it apps_dev sh -c 'composer install && php artisan telescope:publish && php artisan horizon:publish'
       - docker exec -it apps_dev php artisan key:generate
       - docker exec -it apps_dev php artisan migrate
-
-  certs-init:
-    cmds:
-      - docker run --rm -v ./certs:/certs -it cockroachdb/cockroach:v23.1.13 cert create-ca --certs-dir=/certs --ca-key=/certs/ca.key
-      - docker run --rm -v ./certs:/certs -it cockroachdb/cockroach:v23.1.13 cert create-client root --certs-dir=/certs --ca-key=/certs/ca.key
 
   up:
     cmds:

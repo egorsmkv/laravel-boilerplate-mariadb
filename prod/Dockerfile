@@ -7,7 +7,7 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
     php -r "unlink('composer-setup.php');" && \
     mv composer.phar /usr/bin/composer && \
     apk --update --no-cache add wget unzip git linux-headers build-base autoconf zeromq-dev zlib-dev libpq-dev && \
-    docker-php-ext-install pgsql pdo_pgsql pcntl bcmath sockets && \
+    docker-php-ext-install pgsql pdo_pgsql pdo_mysql pcntl bcmath sockets && \
     pecl install excimer
 
 WORKDIR /tmp
@@ -39,7 +39,6 @@ RUN wget https://pecl.php.net/get/redis-6.0.2.tgz && \
     rm caddy_2.7.6_linux_$CADDY_ARCH.tar.gz LICENSE README.md && \
     cd /tmp && \
     mv /tmp/Caddyfile /app && \
-    mv /tmp/certs /app && \
     mv /tmp/apps/frontend /app && \
     mv prod-frontend.env /app/frontend/.env && \
     cp ./custom.ini /usr/local/etc/php/conf.d/custom.ini && \

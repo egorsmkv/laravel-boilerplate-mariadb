@@ -8,9 +8,6 @@
 ### Usage
 
 ```bash
-# Generate certificates for CockroachDB
-task certs-init
-
 # Create prod image
 task build-amd64
 
@@ -22,6 +19,9 @@ task up
 
 # Migrate
 task migrate
+
+# Show logs
+task logs
 
 # Enter the apps container
 task console

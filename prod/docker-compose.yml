@@ -5,7 +5,7 @@ version: '3'
 
 services:
   apps:
-    image: laravel_app_prod:1.0
+    image: laravel_app_mariadb_prod:1.0
     container_name: apps_prod
     restart: always
     env_file:
@@ -17,7 +17,7 @@ services:
       - --rr-config
       - /app/frontend/.rr.yaml
     depends_on:
-      - cockroachdb
+      - mariadb
       - dragonflydb
     networks:
       - app_prod
@@ -36,7 +36,7 @@ services:
           memory: 512M
 
   queue:
-    image: laravel_app_prod:1.0
+    image: laravel_app_mariadb_prod:1.0
     container_name: queue_prod
     restart: always
     env_file:
@@ -46,7 +46,7 @@ services:
       - artisan
       - horizon
     depends_on:
-      - cockroachdb
+      - mariadb
       - dragonflydb
     networks:
       - app_prod
@@ -65,7 +65,7 @@ services:
           memory: 512M
 
   schedule:
-    image: laravel_app_prod:1.0
+    image: laravel_app_mariadb_prod:1.0
     container_name: schedule_prod
     restart: always
     env_file:
@@ -75,7 +75,7 @@ services:
       - artisan
       - schedule:work
     depends_on:
-      - cockroachdb
+      - mariadb
       - dragonflydb
     networks:
       - app_prod
@@ -94,7 +94,7 @@ services:
           memory: 128M
 
   caddy:
-    image: laravel_app_prod:1.0
+    image: laravel_app_mariadb_prod:1.0
     container_name: caddy_prod
     restart: always
     ports:
@@ -123,22 +123,14 @@ services:
         limits:
           memory: 128M
 
-  cockroachdb:
-    image: cockroachdb/cockroach:v23.1.13
-    container_name: cockroachdb_prod
+  mariadb:
+    image: mariadb:11.2
+    container_name: mariadb_prod
+    restart: always
     env_file:
       - prod.env
-    command:
-      - start-single-node
-      - --http-addr
-      - :9080
-      - --certs-dir
-      - /certs
-    ports:
-      - "9080:9080"
     volumes:
-      - cockroach_data:/cockroach/cockroach-data
-      - ./certs:/certs
+      - mariadb_data:/var/lib/mysql
     networks:
       - app_prod
     logging:
@@ -158,6 +150,7 @@ services:
   dragonflydb:
     image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
     container_name: dragonflydb_prod
+    restart: always
     command: dragonfly --logtostderr --requirepass L2hgheewayei5eechW2
     volumes:
       - dragonflydb_data:/data
@@ -173,6 +166,7 @@ services:
   minio:
     image: minio/minio:latest
     container_name: minio_prod
+    restart: always
     command: [
       "server",
       "--console-address",
@@ -207,8 +201,8 @@ volumes:
     name: dragonflydb_prod_data
   minio_data:
     name: minio_prod_data
-  cockroach_data:
-    name: cockroach_prod_data
+  mariadb_data:
+    name: mariadb_prod_data
 
 networks:
   app_prod:

@@ -5,15 +5,17 @@ version: '3'
 
 services:
   apps:
-    image: laravel_app_dev:1.0
+    image: laravel_app_mariadb_dev:1.0
     container_name: apps_dev
     env_file:
       - dev.env
     volumes:
       - ./custom.ini:/usr/local/etc/php/conf.d/custom.ini
       - ./apps:/app
-      - ./certs:/certs
-    command: 
+    # command: 
+    #   - composer
+    #   - install
+    command:
       - php
       - artisan
       - serve
@@ -22,7 +24,7 @@ services:
     networks:
       - app_dev
     depends_on:
-      - cockroachdb
+      - mariadb
       - dragonflydb
     logging:
       options:
@@ -65,22 +67,13 @@ services:
         limits:
           memory: 128M
 
-  cockroachdb:
-    image: cockroachdb/cockroach:v23.1.13
-    container_name: cockroachdb_dev
+  mariadb:
+    image: mariadb:11.2
+    container_name: mariadb_dev
     env_file:
       - dev.env
-    command:
-      - start-single-node
-      - --http-addr
-      - :9080
-      - --certs-dir
-      - /certs
-    ports:
-      - "9080:9080"
     volumes:
-      - cockroach_data:/cockroach/cockroach-data
-      - ./certs:/certs
+      - mariadb_data:/var/lib/mysql
     networks:
       - app_dev
     logging:
@@ -97,19 +90,17 @@ services:
         limits:
           memory: 512M
 
-  pgweb:
-    image: sosedoff/pgweb:latest
-    container_name: pgweb_dev
+  adminer:
+    image: adminer:4.8.1-standalone
+    container_name: adminer_dev
     env_file:
       - dev.env
     networks:
       - app_dev
     ports:
-      - "8081:8081"
-    volumes:
-      - ./certs:/certs
+      - "8081:8080"
     depends_on:
-      - cockroachdb
+      - mariadb
     logging:
       options:
         max-size: "10m"
@@ -199,8 +190,8 @@ volumes:
     name: dragonflydb_dev_data
   minio_data:
     name: minio_dev_data
-  cockroach_data:
-    name: cockroach_dev_data
+  mariadb_data:
+    name: mariadb_dev_data
 
 networks:
    app_dev:
